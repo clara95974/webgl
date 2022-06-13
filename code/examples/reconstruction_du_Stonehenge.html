@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="fr">
+	<head>
+		<title>three.js webgl - lights - spotlight</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link type="text/css" rel="stylesheet" href="main.css">
+		<style type="text/css">
+			#conteneur_slider{
+				position:absolute;
+				top:50%;
+				width:50%;
+				height:50%;
+				left: 48%;
+				z-index:2;
+				font-size:200%
+			}
+		</style>
+	</head>
+	<body>
+        <audio id="ambient" preload="auto" style="display: none">
+            <source src="sounds/ambient.mp3" type="audio/mpeg">
+        </audio>
+        <div id="overlay" class="over">
+			<img src="textures/background1.jpeg">
+			<div id="conteneur_slider">
+				<button id="startButton">Play</button>
+			</div>
+		</div>
+		<script type="module">
+
+			import * as THREE from '../build/three.module.js';
+			import { GUI } from './jsm/libs/dat.gui.module.js';
+			import { FirstPersonControls } from './jsm/controls/FirstPersonControls.js';
+			import Stats from './jsm/libs/stats.module.js';
+			import { FBXLoader } from './jsm/loaders/FBXLoader.js';
+
+			let renderer, scene, camera, controls;
+			let spotLight, lightHelper, shadowCameraHelper, stats, mixer, mixer1, mixer2;
+			let gui, milieu;
+			let base11, base12, toit1;
+			let base21, base22, toit2;
+			let base31, base32, toit3;
+			let base41, base42, toit4;
+			let base51, base52, toit5;
+			let base61, base62, toit6;
+			let base71, base72, toit7;
+			let base81, base82, toit8;
+			let analizer1, analizer2;
+			let zombie,group;
+
+			const clock = new THREE.Clock();
+
+      const startButton = document.getElementById( "overlay" );
+			startButton.addEventListener( 'click', init );
+
+			const listener = new THREE.AudioListener();
+			spotLight = new THREE.SpotLight( 0xffffff, 10 );
+
+			function init() {
+
+				const sound2 = new THREE.PositionalAudio( listener );
+        const songElement2 = document.getElementById( 'ambient' );
+				const overlay = document.getElementById( 'overlay' );
+				if(overlay!=true){
+					overlay.remove();
+				}
+
+          const container = document.createElement( 'div' );
+          document.body.appendChild( container );
+          stats = new Stats();
+          container.appendChild( stats.dom );
+
+				renderer = new THREE.WebGLRenderer();
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				document.body.appendChild( renderer.domElement );
+
+				renderer.shadowMap.enabled = true; //Lance le calcul d’ombre,	Perme d’afficher des ombres
+
+
+				renderer.shadowMap.type = THREE.PCFSoftShadowMap; //	Indiquer type d’ombre voulue
+				renderer.outputEncoding = THREE.sRGBEncoding;
+
+				scene = new THREE.Scene();
+				zombie = new THREE.Scene();
+				group = new THREE.Scene();
+
+				//caméra
+				camera = new THREE.PerspectiveCamera(55,window.innerWidth/window.innerHeight,45,30000);
+				//camera.position.set(-100, 500, 500);
+				camera.position.set(-672, 445, -567);
+				camera.rotation.x = -0.7;
+
+				camera.add( listener );
+
+				//controls
+				controls = new FirstPersonControls( camera, renderer.domElement );
+				controls.movementSpeed = 130;
+				controls.lookSpeed = 0.09;
+				controls.noFly = true;
+				controls.lookVertical = true;
+
+
+				//lumiére
+				const ambient = new THREE.AmbientLight( 0xffffff, 0.1 ); //	lumière ambiante 	allumé sous les éléments
+
+				scene.add( ambient );
+
+			//	spotLight = new THREE.SpotLight( 0xffffff, 10 ); //	 les lumières qui créent les ombres
+
+
+				//spotLight.position.set( 500, 400, 100 );
+				spotLight.position.set( -40, 400, -750 );
+				spotLight.angle = Math.PI / 8;
+				spotLight.penumbra = 0.1;
+				spotLight.decay = 2;
+				spotLight.distance = 1500;
+
+				spotLight.castShadow = true;
+				spotLight.shadow.mapSize.width = 4096; //taille du calcul de l’ombre
+				spotLight.shadow.mapSize.height = 4096;
+				spotLight.shadow.camera.near = 10;
+				spotLight.shadow.camera.far = 1000;//jusqu’à ou vas l’ombre
+				spotLight.shadow.focus = 1;
+				scene.add( spotLight );
+
+				lightHelper = new THREE.SpotLightHelper( spotLight );
+				lightHelper.visible = false;
+				scene.add( lightHelper );
+
+				shadowCameraHelper = new THREE.CameraHelper( spotLight.shadow.camera );
+				shadowCameraHelper.visible = false;
+				scene.add( shadowCameraHelper );
+
+				//
+
+
+				const stone = new THREE.BoxGeometry( 40, 200, 50 );
+                const middle = new THREE.BoxGeometry(100, 80, 80);
+
+				//sol
+				const floor = new THREE.BoxGeometry( 1500, 0.1, 1500 );
+
+				const texture1 = new THREE.TextureLoader().load('textures/grass.jpg');
+                texture1.wrapS = THREE.RepeatWrapping;
+                texture1.wrapT = THREE.RepeatWrapping;
+                texture1.repeat.set( 20, 20 );
+                const grass = new THREE.MeshPhongMaterial( { map: texture1 , dithering: true} ); // MeshPhongMaterial interagie avec la lumiére
+				const floorMesh = new THREE.Mesh( floor, grass );
+       			floorMesh.position.set( -100, -100, -300 );
+        		floorMesh.rotation.y =  100;
+        		floorMesh.receiveShadow  = true;
+				scene.add(floorMesh);
+
+				const texture = new THREE.TextureLoader().load( 'textures/stone.jpeg' );
+				let color = new THREE.MeshPhongMaterial( { map: texture } );
+        const dark = new THREE.TextureLoader().load( 'textures/dark-stone.jpeg' );
+        let couleur = new THREE.MeshPhongMaterial({map: dark});
+
+				//
+                milieu = new THREE.Mesh( middle, couleur );
+                milieu.position.y = -49;
+                milieu.position.x = -40;
+                milieu.position.z = -250;
+                milieu.rotation.z = 300;
+                milieu.receiveShadow = true;
+                milieu.castShadow = true;
+                scene.add( milieu );
+
+				base11 = new THREE.Mesh( stone, color );
+				base11.receiveShadow = true;
+				base11.castShadow = true;
+				scene.add( base11 );
+
+				base12 = new THREE.Mesh( stone, color );
+				base12.position.x = -140;
+				base12.receiveShadow = true;//•	reçoit des ombres
+				base12.castShadow = true; //pour projeter des ombres
+				scene.add( base12 );
+
+				toit1 = new THREE.Mesh( stone, color );
+				toit1.position.x = -70;
+				toit1.position.y = 120;
+				toit1.rotation.z = 300;
+				toit1.receiveShadow = true;
+				toit1.castShadow = true;
+				scene.add( toit1 );
+
+
+				//
+				base21 = new THREE.Mesh( stone, color );
+				base21.position.x = 100;
+				base21.rotation.y = -99.8;
+				base21.position.z = -40;
+				base21.receiveShadow = true;
+				base21.castShadow = true;
+				scene.add( base21 );
+
+				base22 = new THREE.Mesh( stone, color );
+				base22.position.x = 210;
+				base22.rotation.y = -99.8;
+				base22.position.z = -130;
+				base22.receiveShadow = true;
+				base22.castShadow = true;
+				scene.add( base22 );
+
+				toit2 = new THREE.Mesh( stone, color );
+				toit2.position.x = 155;
+				toit2.position.y = 120;
+				toit2.rotation.y = -99.8;
+				toit2.rotation.z = 133.5;
+				toit2.position.z = -80;
+				toit2.receiveShadow = true;
+				toit2.castShadow = true;
+				scene.add( toit2 );
+
+
+				//
+				base31 = new THREE.Mesh( stone, color );
+				base31.position.x = 250;
+				base31.rotation.y = -300;
+				base31.position.z = -220
+				base31.receiveShadow = true;
+				base31.castShadow = true;
+				scene.add( base31 );
+
+				base32 = new THREE.Mesh( stone, color );
+				base32.position.x = 250;
+				base32.rotation.y = -300;
+				base32.position.z = -350;
+				base32.receiveShadow = true;
+				base32.castShadow = true;
+				scene.add( base32 );
+
+				toit3 = new THREE.Mesh( stone, color );
+				toit3.position.x = 250;
+				toit3.position.y = 120;
+				toit3.rotation.y = -300;
+				toit3.rotation.z = 133.5;
+				toit3.position.z = -290;
+				toit3.receiveShadow = true;
+				toit3.castShadow = true;
+				scene.add( toit3 );
+
+
+				//
+				base41 = new THREE.Mesh( stone, color );
+				base41.position.x = 210;
+				base41.rotation.y = -390;
+				base41.position.z = -470;
+				base41.receiveShadow = true;
+				base41.castShadow = true;
+				scene.add( base41 );
+
+				base42 = new THREE.Mesh( stone, color );
+				base42.position.x = 100;
+				base42.rotation.y = -390;
+				base42.position.z = -520;
+				base42.receiveShadow = true;
+				base42.castShadow = true;
+				scene.add( base42 );
+
+				toit4 = new THREE.Mesh( stone, color );
+				toit4.position.x = 150;
+				toit4.position.y = 120;
+				toit4.rotation.y = -390;
+				toit4.rotation.z = 133.5;
+				toit4.position.z = -500;
+				toit4.receiveShadow = true;
+				toit4.castShadow = true;
+				scene.add( toit4 );
+
+
+				//
+				base51 = new THREE.Mesh( stone, color );
+				base51.position.z = -530;
+				base51.receiveShadow = true;
+				base51.castShadow = true;
+				scene.add( base51 );
+
+				base52 = new THREE.Mesh( stone, color );
+				base52.position.x = -140;
+				base52.position.z = -530;
+				base52.receiveShadow = true;
+				base52.castShadow = true;
+				scene.add( base52 );
+
+				toit5 = new THREE.Mesh( stone, color );
+				toit5.position.x = -70;
+				toit5.position.y = 120;
+				toit5.rotation.z = 300;
+				toit5.position.z = -530;
+				toit5.receiveShadow = true;
+				toit5.castShadow = true;
+				scene.add( toit5 );
+
+
+				//
+				base61 = new THREE.Mesh( stone, color );
+				base61.position.x = -250;
+				base61.rotation.y = -99.8;
+				base61.position.z = -490;
+				base61.receiveShadow = true;
+				base61.castShadow = true;
+				scene.add( base61 );
+
+				base62 = new THREE.Mesh( stone, color );
+				base62.position.x = -360;
+				base62.rotation.y = -99.8;
+				base62.position.z = -400;
+				base62.receiveShadow = true;
+				base62.castShadow = true;
+				scene.add( base62 );
+
+				toit6 = new THREE.Mesh( stone, color );
+				toit6.position.x = -300;
+				toit6.position.y = 120;
+				toit6.rotation.y = -99.8;
+				toit6.rotation.z = 133.5;
+				toit6.position.z = -450;
+				toit6.receiveShadow = true;
+				toit6.castShadow = true;
+				scene.add( toit6 );
+
+
+				//
+				base71 = new THREE.Mesh( stone, color );
+				base71.position.x = -400;
+				base71.rotation.y = -300;
+				base71.position.z = -150;
+				base71.receiveShadow = true;
+				base71.castShadow = true;
+				scene.add( base71 );
+
+				base72 = new THREE.Mesh( stone, color );
+				base72.position.x = -400;
+				base72.rotation.y = -300;
+				base72.position.z = -300;
+				base72.receiveShadow = true;
+				base72.castShadow = true;
+				scene.add( base72 );
+
+				toit7 = new THREE.Mesh( stone, color );
+				toit7.position.x = -400;
+				toit7.position.y = 120;
+				toit7.rotation.y = -300;
+				toit7.rotation.z = 133.5;
+				toit7.position.z = -230;
+				toit7.receiveShadow = true;
+				toit7.castShadow = true;
+				scene.add( toit7 );
+
+
+				//
+				base81 = new THREE.Mesh( stone, color );
+				base81.position.x = -360;
+				base81.rotation.y = -390;
+				base81.position.z = -60;
+				base81.receiveShadow = true;
+				base81.castShadow = true;
+				scene.add( base81 );
+
+				base82 = new THREE.Mesh( stone, color );
+				base82.position.x = -230;
+				base82.rotation.y = -390;
+				base82.position.z = -5;
+				base82.receiveShadow = true;
+				base82.castShadow = true;
+				scene.add( base82 );
+
+				toit8 = new THREE.Mesh( stone, color );
+				toit8.position.x = -300;
+				toit8.position.y = 120;
+				toit8.rotation.y = -390;
+				toit8.rotation.z = 133.5;
+				toit8.position.z = -40;
+				toit8.receiveShadow = true;
+				toit8.castShadow = true;
+				scene.add( toit8 );
+
+
+
+
+
+				//1 model 3d
+				const loader = new FBXLoader();
+				loader.load( 'models/fbx/Dying.fbx', function ( object ) {
+
+					mixer = new THREE.AnimationMixer( object );
+
+					const action = mixer.clipAction( object.animations[ 0 ] );
+					action.play();
+
+					object.traverse( function ( child ) {
+
+						if ( child.isMesh ) {
+
+							child.castShadow = true;
+							child.receiveShadow = true;
+
+						}
+
+					} );
+					object.position.set(-150,-100,-250);
+					scene.add(object);
+				} );
+
+                // 2
+                const loader1 = new FBXLoader();
+				loader1.load( 'models/fbx/Sitting-Laughing.fbx', function ( object ) {
+
+					mixer1 = new THREE.AnimationMixer( object );
+
+					const action = mixer1.clipAction( object.animations[ 0 ] );
+					action.play();
+
+					object.traverse( function ( child ) {
+
+						if ( child.isMesh ) {
+
+							child.castShadow = true;
+							child.receiveShadow = true;
+
+						}
+
+					} );
+					object.position.x = 150;
+					object.position.y = 100;
+					object.rotation.y = -390;
+					object.position.z = -500;
+					sound2.setRefDistance( 0.5 );
+					sound2.setMediaElementSource( songElement2 );
+					sound2.setVolume( 20 );
+					songElement2.play();
+					object.add( sound2 );
+					scene.add( object );
+				} );
+				analizer2 = new THREE.AudioAnalyser(sound2, 32);
+
+                // 3
+                const loader2 = new FBXLoader();
+                    loader2.load( 'models/fbx/sword.fbx', function ( object ) {
+
+                        mixer2 = new THREE.AnimationMixer( object );
+
+                        object.traverse( function ( child ) {
+
+                            if ( child.isMesh ) {
+
+                                child.castShadow = true;
+                                child.receiveShadow = true;
+
+                            }
+
+                        } );
+                        object.scale.set(-0.2,-0.2,-0.2);
+                        object.rotation.z = -4.8;
+                        object.position.set(-40,0,-250);
+												group.add( object );
+                        scene.add( group );
+                    }
+                );
+
+				//boxsky
+				let materialArray = [];
+				let texture_ft = new THREE.TextureLoader().load( 'textures/barren_ft.jpg');
+				let texture_bk = new THREE.TextureLoader().load( 'textures/barren_bk.jpg');
+				let texture_up = new THREE.TextureLoader().load( 'textures/barren_up.jpg');
+				let texture_dn = new THREE.TextureLoader().load( 'textures/barren_dn.jpg');
+				let texture_rt = new THREE.TextureLoader().load( 'textures/barren_rt.jpg');
+				let texture_lf = new THREE.TextureLoader().load( 'textures/barren_lf.jpg');
+
+				materialArray.push(new THREE.MeshBasicMaterial( { map: texture_ft }));
+				materialArray.push(new THREE.MeshBasicMaterial( { map: texture_bk }));
+				materialArray.push(new THREE.MeshBasicMaterial( { map: texture_up }));
+				materialArray.push(new THREE.MeshBasicMaterial( { map: texture_dn }));
+				materialArray.push(new THREE.MeshBasicMaterial( { map: texture_rt }));
+				materialArray.push(new THREE.MeshBasicMaterial( { map: texture_lf }));
+
+				for (let i = 0; i < 6; i++)
+					materialArray[i].side = THREE.BackSide;
+
+				let skyboxGeo = new THREE.BoxGeometry( 10000, 10000, 10000);
+				let skybox = new THREE.Mesh( skyboxGeo, materialArray );
+				scene.add( skybox );
+				buildGui();
+
+
+				window.addEventListener( 'resize', onWindowResize );
+					render();
+					animate(); //pour que les changements soit efficace
+			}
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+			function animate() {
+
+                const delta = clock.getDelta();
+                stats.update();
+				if ( controls ) controls.update(delta);
+                if ( mixer ) mixer.update( delta );
+                if ( mixer1 ) mixer1.update( delta );
+								render();
+			    requestAnimationFrame(animate);
+			}
+
+			function render() {
+				if (group.position.y <100) {
+					group.position.y = group.position.y + (analizer2.getAverageFrequency() / 256)*100;
+				}else {
+					spotLight.color.setHex( analizer2.getAverageFrequency()*9000000);
+					group.position.y =0;
+				}
+				lightHelper.update();
+				shadowCameraHelper.update();
+				renderer.render( scene, camera );
+			}
+
+			//gui
+			function buildGui() {
+				let x, y, z;
+				let folder;
+				gui = new GUI();
+
+				const params = {
+					'light color': spotLight.color.getHex(),
+					intensity: spotLight.intensity,
+					distance: spotLight.distance,
+					angle: spotLight.angle,
+					penumbra: spotLight.penumbra,
+					decay: spotLight.decay,
+					x: spotLight.position.x,
+                    y: spotLight.position.y,
+                    z: spotLight.position.z,
+                    lightHelper: false,
+                    shadowCameraHelper: false
+				};
+
+				folder = gui.addFolder("param light");
+                folder.addColor( params, 'light color' ).onChange( function ( val ) {
+                    spotLight.color.setHex( val );
+                    render();
+                } );
+
+                folder.add( params, 'intensity', 0, 2 ).onChange( function ( val ) {
+                    spotLight.intensity = val;
+                    render();
+                } );
+
+                folder.add( params, 'distance', 50, 1500 ).onChange( function ( val ) {
+                    spotLight.distance = val;
+                    render();
+                } );
+
+                folder.add( params, 'angle', 0, Math.PI / 3 ).onChange( function ( val ) {
+                    spotLight.angle = val;
+                    render();
+                } );
+
+                folder.add( params, 'penumbra', 0, 1 ).onChange( function ( val ) {
+                    spotLight.penumbra = val;
+                    render();
+                } );
+
+                folder.add( params, 'decay', 1, 2 ).onChange( function ( val ) {
+                    spotLight.decay = val;
+                    render();
+                } );
+
+                    //position light (x,y,z)
+                folder =    gui.addFolder("position light");
+                folder.add( params, 'x', -500, 1500 ).onChange( function ( val ) {
+                    spotLight.position.x = val;
+                    render();
+                } );
+                folder.add( params, 'y', 0, 1500 ).onChange( function ( val ) {
+                    spotLight.position.y = val;
+                    render();
+                } );
+				folder.add( params, 'z', -500, 1500 ).onChange( function ( val ) {
+                    spotLight.position.z = val;
+                    render();
+                } );
+
+                    //helper
+                folder = gui.addFolder("helper")
+                folder.add( params, 'lightHelper').name("light").onChange(function(){
+                        lightHelper.visible = params.lightHelper;
+                        render();
+                });
+                folder.add( params, 'shadowCameraHelper').name("shadowCamera").onChange(function(){
+                        shadowCameraHelper.visible = params.shadowCameraHelper;
+                        render();
+                });
+
+				gui.open();// pour ouvrir la gui
+
+			}
+
+
+
+		</script>
+
+	</body>
+
+</html>

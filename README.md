@@ -5,7 +5,7 @@ Année : 2020 - 2021
 
 Groupe : groupe de 4 élèves
 
-Description : Ce projet scolaire pour découvrir l'animation WebGL.
+Description : Ce projet scolaire m'as fait découvrir l'animation WebGL.
 
 Pour retrouver le code :
 
